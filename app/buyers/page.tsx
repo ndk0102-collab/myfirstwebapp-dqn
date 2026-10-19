@@ -20,6 +20,14 @@ function buyerLink(buyer: Buyer, rank?: number) {
   );
 }
 
+function buyerListHref(grade?: Grade, query?: string) {
+  const params = new URLSearchParams();
+  if (grade) params.set("grade", grade);
+  if (query) params.set("q", query);
+  const search = params.toString();
+  return search ? `/buyers?${search}` : "/buyers";
+}
+
 const riskColumns: Column[] = [
   { key: "buyer", label: "바이어" },
   { key: "country", label: "나라" },
@@ -37,16 +45,21 @@ export const metadata = { title: "바이어" };
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ grade?: string | string[] }>;
+  searchParams: Promise<{ grade?: string | string[]; q?: string | string[] }>;
 }) {
   const allBuyers = await getBuyers();
   const params = await searchParams;
   const selectedGrade = typeof params.grade === "string" && isGrade(params.grade) ? params.grade : undefined;
+  const searchTerm = typeof params.q === "string" ? params.q.trim() : "";
   const stats = kpis(allBuyers);
   const counts = gradeCounts(allBuyers);
   const riskBuyers = topRisk(allBuyers);
   const regions = byRegion(allBuyers).slice(0, 6);
-  const filteredBuyers = filterByGrade(allBuyers, selectedGrade);
+  const normalizedSearchTerm = searchTerm.toLocaleLowerCase();
+  const filteredBuyers = filterByGrade(allBuyers, selectedGrade).filter((buyer) =>
+    [buyer.id, buyer.name, buyer.countryKo, buyer.region, buyer.industry]
+      .some((value) => value.toLocaleLowerCase().includes(normalizedSearchTerm)),
+  );
   const highestCShareRegion = regions.reduce<(typeof regions)[number] | undefined>(
     (highest, region) =>
       region.cGradeShare !== null && (highest === undefined || region.cGradeShare > (highest.cGradeShare ?? -1))
@@ -116,9 +129,35 @@ export default async function Page({
 
       <section aria-labelledby="buyers-title" className="space-y-3">
         <h2 id="buyers-title" className="text-lg font-semibold">전체 목록</h2>
+        <form action="/buyers" method="get" className="flex flex-col gap-2 sm:flex-row">
+          <label htmlFor="buyer-search" className="sr-only">바이어 번호, 이름, 나라, 지역, 업종으로 검색</label>
+          <input
+            id="buyer-search"
+            name="q"
+            type="search"
+            defaultValue={searchTerm}
+            placeholder="번호, 이름, 나라, 지역, 업종 검색"
+            className="min-h-11 min-w-0 flex-1 rounded-md border border-line bg-bg px-3 text-ink placeholder:text-muted"
+          />
+          {selectedGrade ? <input type="hidden" name="grade" value={selectedGrade} /> : null}
+          <button
+            type="submit"
+            className="min-h-11 rounded-md border border-accent bg-accent px-4 text-white"
+          >
+            검색
+          </button>
+          {searchTerm ? (
+            <Link
+              href={buyerListHref(selectedGrade)}
+              className="inline-flex min-h-11 items-center justify-center rounded-md border border-line px-4 text-ink"
+            >
+              검색 지우기
+            </Link>
+          ) : null}
+        </form>
         <nav aria-label="등급별 바이어" className="flex flex-wrap gap-2">
           <Link
-            href="/buyers"
+            href={buyerListHref(undefined, searchTerm)}
             aria-current={selectedGrade === undefined ? "page" : undefined}
             className={`flex min-h-11 items-center rounded-md border px-3 text-sm ${
               selectedGrade === undefined ? "border-accent bg-accent text-white" : "border-line text-ink hover:bg-surface"
@@ -129,7 +168,7 @@ export default async function Page({
           {GRADES.map((grade) => (
             <Link
               key={grade}
-              href={`/buyers?grade=${grade}`}
+              href={buyerListHref(grade, searchTerm)}
               aria-current={selectedGrade === grade ? "page" : undefined}
               className={`flex min-h-11 items-center rounded-md border px-3 text-sm ${
                 selectedGrade === grade ? "border-accent bg-accent text-white" : "border-line text-ink hover:bg-surface"
@@ -140,9 +179,15 @@ export default async function Page({
           ))}
         </nav>
         <p className="text-sm text-muted">
+          {searchTerm ? `“${searchTerm}” 검색 · ` : ""}
           {selectedGrade ? `${selectedGrade}등급` : "전체"} <span className="num">{int(filteredBuyers.length)}</span>곳
         </p>
-        <DataTable columns={buyerColumns} rows={buyerRows} caption="바이어 목록" />
+        <DataTable
+          columns={buyerColumns}
+          rows={buyerRows}
+          caption="바이어 목록"
+          empty="검색 조건에 맞는 바이어가 없습니다."
+        />
       </section>
     </div>
   );
