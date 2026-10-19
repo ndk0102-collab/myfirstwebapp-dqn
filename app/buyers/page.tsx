@@ -95,6 +95,66 @@ export default async function Page({
         line="위험 점수는 판단을 돕는 값이고, 결정은 사람이 합니다."
       />
 
+      <section aria-labelledby="buyer-search-title" className="space-y-4 rounded-lg border border-accent bg-surface p-4 sm:p-6">
+        <div>
+          <h2 id="buyer-search-title" className="text-xl font-bold text-ink">바이어 바로 찾기</h2>
+          <p className="mt-1 text-sm text-muted">번호 · 이름 · 나라 · 지역 · 업종으로 검색하세요.</p>
+        </div>
+        <form action="/buyers" method="get" className="flex flex-col gap-2 sm:flex-row">
+          <label htmlFor="buyer-search" className="sr-only">바이어 번호, 이름, 나라, 지역, 업종으로 검색</label>
+          <input
+            id="buyer-search"
+            name="q"
+            type="search"
+            defaultValue={searchTerm}
+            placeholder="예: B048, 중국, 동아시아"
+            className="min-h-12 min-w-0 flex-1 rounded-md border border-line bg-bg px-4 text-base text-ink placeholder:text-muted"
+          />
+          {selectedGrade ? <input type="hidden" name="grade" value={selectedGrade} /> : null}
+          <button type="submit" className="min-h-12 rounded-md border border-accent bg-accent px-6 font-semibold text-white">
+            바이어 검색
+          </button>
+          {searchTerm || selectedGrade ? (
+            <Link
+              href="/buyers"
+              className="inline-flex min-h-12 items-center justify-center rounded-md border border-line bg-bg px-4 text-ink"
+            >
+              조건 초기화
+            </Link>
+          ) : null}
+        </form>
+        <div className="flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <nav aria-label="등급별 바이어" className="flex flex-wrap gap-2">
+            <Link
+              href={buyerListHref(undefined, searchTerm)}
+              aria-current={selectedGrade === undefined ? "page" : undefined}
+              className={`flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm ${
+                selectedGrade === undefined ? "border-accent bg-accent text-white" : "border-line bg-bg text-ink hover:bg-surface"
+              }`}
+            >
+              전체 <span className="num">{int(stats.buyerCount)}</span>
+            </Link>
+            {GRADES.map((grade) => (
+              <Link
+                key={grade}
+                href={buyerListHref(grade, searchTerm)}
+                aria-current={selectedGrade === grade ? "page" : undefined}
+                className={`flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm ${
+                  selectedGrade === grade ? "border-accent bg-accent text-white" : "border-line bg-bg text-ink hover:bg-surface"
+                }`}
+              >
+                {grade} <span className="num">{int(counts[grade])}</span>
+              </Link>
+            ))}
+          </nav>
+          <p className="text-sm text-muted" aria-live="polite">
+            {searchTerm ? `“${searchTerm}” · ` : ""}
+            {selectedGrade ? `${selectedGrade}등급 · ` : ""}
+            결과 <span className="num font-semibold text-ink">{int(filteredBuyers.length)}</span>곳
+          </p>
+        </div>
+      </section>
+
       <section aria-label="요약 숫자" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="위험 바이어(C등급)" value={`${int(stats.cGradeBuyerCount)}곳`} />
         <KpiCard label="C등급 채권" value={usd(stats.cGradeOpenArUsd)} sub={`전체의 ${pct(stats.cGradeOpenArShare)}`} />
@@ -129,59 +189,6 @@ export default async function Page({
 
       <section aria-labelledby="buyers-title" className="space-y-3">
         <h2 id="buyers-title" className="text-lg font-semibold">전체 목록</h2>
-        <form action="/buyers" method="get" className="flex flex-col gap-2 sm:flex-row">
-          <label htmlFor="buyer-search" className="sr-only">바이어 번호, 이름, 나라, 지역, 업종으로 검색</label>
-          <input
-            id="buyer-search"
-            name="q"
-            type="search"
-            defaultValue={searchTerm}
-            placeholder="번호, 이름, 나라, 지역, 업종 검색"
-            className="min-h-11 min-w-0 flex-1 rounded-md border border-line bg-bg px-3 text-ink placeholder:text-muted"
-          />
-          {selectedGrade ? <input type="hidden" name="grade" value={selectedGrade} /> : null}
-          <button
-            type="submit"
-            className="min-h-11 rounded-md border border-accent bg-accent px-4 text-white"
-          >
-            검색
-          </button>
-          {searchTerm ? (
-            <Link
-              href={buyerListHref(selectedGrade)}
-              className="inline-flex min-h-11 items-center justify-center rounded-md border border-line px-4 text-ink"
-            >
-              검색 지우기
-            </Link>
-          ) : null}
-        </form>
-        <nav aria-label="등급별 바이어" className="flex flex-wrap gap-2">
-          <Link
-            href={buyerListHref(undefined, searchTerm)}
-            aria-current={selectedGrade === undefined ? "page" : undefined}
-            className={`flex min-h-11 items-center rounded-md border px-3 text-sm ${
-              selectedGrade === undefined ? "border-accent bg-accent text-white" : "border-line text-ink hover:bg-surface"
-            }`}
-          >
-            전체 <span className="num">{int(stats.buyerCount)}</span>
-          </Link>
-          {GRADES.map((grade) => (
-            <Link
-              key={grade}
-              href={buyerListHref(grade, searchTerm)}
-              aria-current={selectedGrade === grade ? "page" : undefined}
-              className={`flex min-h-11 items-center rounded-md border px-3 text-sm ${
-                selectedGrade === grade ? "border-accent bg-accent text-white" : "border-line text-ink hover:bg-surface"
-              }`}
-            >
-              {grade} <span className="num">{int(counts[grade])}</span>
-            </Link>
-          ))}
-        </nav>
-        <p className="text-sm text-muted">
-          {searchTerm ? `“${searchTerm}” 검색 · ` : ""}
-          {selectedGrade ? `${selectedGrade}등급` : "전체"} <span className="num">{int(filteredBuyers.length)}</span>곳
-        </p>
         <DataTable
           columns={buyerColumns}
           rows={buyerRows}
