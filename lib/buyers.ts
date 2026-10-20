@@ -1,4 +1,4 @@
-import buyerData from "@/data/buyers.json";
+import { db } from "@/lib/db";
 
 export type Grade = "S" | "A" | "B" | "C";
 
@@ -21,13 +21,12 @@ export type Buyer = {
   signals: string[];
 };
 
-const buyers = buyerData as Buyer[];
-
 export async function getBuyers(): Promise<Buyer[]> {
-  return buyers;
+  const rows = await db().buyer.findMany({ orderBy: { id: "asc" } });
+  return rows.map((r) => ({ ...r, grade: r.grade as Grade }));
 }
 
 export async function getBuyer(id: string): Promise<Buyer | null> {
-  const normalizedId = id.toUpperCase();
-  return buyers.find((buyer) => buyer.id === normalizedId) ?? null;
+  const row = await db().buyer.findUnique({ where: { id: id.toUpperCase() } });
+  return row ? { ...row, grade: row.grade as Grade } : null;
 }

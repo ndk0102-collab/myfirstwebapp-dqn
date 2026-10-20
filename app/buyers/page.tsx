@@ -40,6 +40,8 @@ const riskColumns: Column[] = [
 
 const buyerColumns: Column[] = riskColumns.slice(0, 6);
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "바이어" };
 
 export default async function Page({

@@ -3,8 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import GradeBadge from "@/components/GradeBadge";
 import PageHeader from "@/components/PageHeader";
+import ReviewForm from "@/components/ReviewForm";
 import { getBuyer } from "@/lib/buyers";
-import { int, pct, usd } from "@/lib/format";
+import { int, kst, pct, usd } from "@/lib/format";
+import { getReviews } from "@/lib/reviews";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -15,9 +19,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: buyer ? `${id} · ${buyer.name}` : "바이어를 찾을 수 없습니다" };
 }
 
+const STATUS_STYLE: Record<string, string> = {
+  "확인 필요": "border-warn text-warn",
+  "확인 완료": "border-accent text-accent",
+  "보류":     "border-line text-muted",
+};
+
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
-  const buyer = await getBuyer(id);
+  const [buyer, reviews] = await Promise.all([getBuyer(id), getReviews(id.toUpperCase())]);
   if (!buyer) notFound();
 
   const details = [
@@ -62,6 +72,30 @@ export default async function Page({ params }: PageProps) {
           {buyer.signals.map((signal, index) => <li key={`${index}-${signal}`}>{signal}</li>)}
         </ul>
         <p className="text-sm text-muted">이 신호들은 확인해 볼 이유이지, 연체의 원인이라는 뜻은 아닙니다.</p>
+      </section>
+
+      <section aria-labelledby="reviews-title" className="space-y-4">
+        <h2 id="reviews-title" className="text-lg font-semibold">확인 기록</h2>
+        <ReviewForm buyerId={buyer.id} />
+        {reviews.length === 0 ? (
+          <p className="text-sm text-muted">아직 확인 기록이 없습니다</p>
+        ) : (
+          <ul className="space-y-3">
+            {reviews.map((r) => (
+              <li key={r.id} className="rounded-lg border border-line bg-surface p-4 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex items-center rounded border px-1.5 text-sm font-semibold ${STATUS_STYLE[r.status] ?? "border-line text-muted"}`}
+                  >
+                    {r.status}
+                  </span>
+                  <span className="text-xs text-muted">{r.reviewer} · {kst(r.createdAt)}</span>
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-ink">{r.memo}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <Link href="/buyers" className="inline-flex min-h-11 items-center rounded-md px-3 text-accent hover:bg-surface">
