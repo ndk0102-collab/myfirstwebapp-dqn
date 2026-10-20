@@ -4,6 +4,7 @@ import GradeBadge from "@/components/GradeBadge";
 import KpiCard from "@/components/KpiCard";
 import Notice from "@/components/Notice";
 import PageHeader from "@/components/PageHeader";
+import DunningDraft from "@/components/DunningDraft";
 import UrgentAlert from "@/components/UrgentAlert";
 import { getBuyers } from "@/lib/buyers";
 import { int, kst, pct, usd } from "@/lib/format";
@@ -61,6 +62,9 @@ export default async function Home() {
                     )}
                   </div>
                   <GradeBadge grade={b.grade} />
+                </div>
+                <div className="w-full">
+                  <DunningDraft buyer={b} />
                 </div>
               </li>
             ))}
