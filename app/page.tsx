@@ -1,8 +1,10 @@
 import Link from "next/link";
 import DeployBadge from "@/components/DeployBadge";
+import GradeBadge from "@/components/GradeBadge";
 import KpiCard from "@/components/KpiCard";
 import Notice from "@/components/Notice";
 import PageHeader from "@/components/PageHeader";
+import UrgentAlert from "@/components/UrgentAlert";
 import { getBuyers } from "@/lib/buyers";
 import { int, kst, pct, usd } from "@/lib/format";
 import { getRecentReviews } from "@/lib/reviews";
@@ -20,6 +22,7 @@ export default async function Home() {
   const [buyers, recentReviews] = await Promise.all([getBuyers(), getRecentReviews(5)]);
   const total = buyers.length;
   const gradeC = buyers.filter((b) => b.grade === "C");
+  const urgentBuyers = [...gradeC].sort((a, b) => b.openArUsd - a.openArUsd);
   const arAll = buyers.reduce((sum, b) => sum + b.openArUsd, 0);
   const arC = gradeC.reduce((sum, b) => sum + b.openArUsd, 0);
 
@@ -30,6 +33,40 @@ export default async function Home() {
         asof="2026-09-30 · (가상) 합성 데이터"
         line="바이어 채권 · 등급을 휴대폰에서 보는 사내 웹앱입니다. 쪽은 실습에서 하나씩 더합니다."
       />
+
+      <UrgentAlert count={urgentBuyers.length} />
+
+      <section aria-labelledby="urgent-title" className="space-y-3 rounded-lg border-l-4 border-warn bg-surface p-4 sm:p-6">
+        <h2 id="urgent-title" className="text-lg font-bold text-warn">
+          지금 확인이 필요한 바이어 — {int(urgentBuyers.length)}곳
+        </h2>
+        {urgentBuyers.length === 0 ? (
+          <p className="text-sm text-muted">C등급 바이어가 없습니다</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {urgentBuyers.map((b) => (
+              <li key={b.id} className="flex flex-wrap items-center gap-3 py-3">
+                <Link
+                  href={`/buyers/${b.id}`}
+                  className="inline-flex min-h-11 flex-1 flex-col justify-center hover:underline"
+                >
+                  <span className="font-semibold text-ink">{b.name}</span>
+                  <span className="text-xs text-muted">{b.id} · {b.countryKo}</span>
+                </Link>
+                <div className="flex items-center gap-3 text-right">
+                  <div>
+                    <p className="num text-sm font-semibold text-ink">{usd(b.openArUsd)}</p>
+                    {b.overdueUsd > 0 && (
+                      <p className="num text-xs text-warn">연체 {usd(b.overdueUsd)}</p>
+                    )}
+                  </div>
+                  <GradeBadge grade={b.grade} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section aria-label="요약 숫자" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <KpiCard label="바이어" value={`${int(total)}곳`} sub="Supabase DB에서 읽음" />
