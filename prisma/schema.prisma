@@ -29,6 +29,7 @@ model Buyer {
   grade          String
   signals        String[]
   reviews        Review[]
+  drafts         DunningDraft[]
 }
 
 model Review {
@@ -41,4 +42,34 @@ model Review {
   createdAt DateTime @default(now())
 
   @@index([buyerId])
+}
+
+model DunningDraft {
+  id         Int       @id @default(autoincrement())
+  buyerId    String
+  buyer      Buyer     @relation(fields: [buyerId], references: [id])
+  stage      String
+  tone       String
+  overdueUsd Int
+  subject    String
+  body       String
+  summaryKo  String
+  checks     Json
+  status     String    @default("pending")
+  decidedBy  String?
+  decidedAt  DateTime?
+  reason     String?
+  createdAt  DateTime  @default(now())
+
+  @@index([buyerId])
+  @@index([status])
+}
+
+model AuditLog {
+  id     Int      @id @default(autoincrement())
+  at     DateTime @default(now())
+  actor  String
+  action String
+  target String
+  detail String
 }

@@ -35,6 +35,17 @@ export function int(v: Num): string {
   return whole.format(Math.round(v));
 }
 
+/** 환율(소수 둘째 자리): 1234.56 → "1,234.56원" */
+export function fx(v: Num): string {
+  if (!ok(v)) return EMPTY;
+  return (
+    new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(v) + "원"
+  );
+}
+
 /** 한국 시각(Asia/Seoul): → "2026-10-19 15:03" · seconds=true면 "2026-10-19 15:03:07". 서버에서 부른다. */
 export function kst(date: Date | string | number, seconds = false): string {
   const d = date instanceof Date ? date : new Date(date);

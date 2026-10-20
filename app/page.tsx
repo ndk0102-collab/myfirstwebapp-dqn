@@ -1,9 +1,11 @@
 import Link from "next/link";
 import DeployBadge from "@/components/DeployBadge";
 import DunningDraft from "@/components/DunningDraft";
+import FxTile from "@/components/FxTile";
 import GradeBadge from "@/components/GradeBadge";
 import KpiCard from "@/components/KpiCard";
 import UrgentAlert from "@/components/UrgentAlert";
+import fxFallback from "@/data/fx_fallback.json";
 import { getBuyers } from "@/lib/buyers";
 import { int, kst, pct, usd } from "@/lib/format";
 import { getRecentReviews } from "@/lib/reviews";
@@ -86,11 +88,17 @@ function ChapterHead({
 export default async function Home() {
   const [buyers, recentReviews] = await Promise.all([getBuyers(), getRecentReviews(5)]);
 
-  const total     = buyers.length;
-  const gradeC    = buyers.filter((b) => b.grade === "C");
+  const total        = buyers.length;
+  const gradeC       = buyers.filter((b) => b.grade === "C");
   const urgentBuyers = [...gradeC].sort((a, b) => b.openArUsd - a.openArUsd);
-  const arAll     = buyers.reduce((sum, b) => sum + b.openArUsd, 0);
-  const arC       = gradeC.reduce((sum, b) => sum + b.openArUsd, 0);
+  const arAll        = buyers.reduce((sum, b) => sum + b.openArUsd, 0);
+  const arC          = gradeC.reduce((sum, b) => sum + b.openArUsd, 0);
+  const overdueUsd   = buyers.reduce((sum, b) => sum + b.overdueUsd, 0);
+  const overdueCount = buyers.filter((b) => b.overdueUsd > 0).length;
+
+  type FxBlock = Array<{ quote: string; rate: number }>;
+  const fb930 = (fxFallback as unknown as Record<string, FxBlock>)["2026-09-30"];
+  const base930Krw = fb930?.find((r) => r.quote === "KRW")?.rate ?? 1354.68;
 
   return (
     <div className="space-y-10">
@@ -100,6 +108,13 @@ export default async function Home() {
         <h1 className="mt-1 text-2xl font-bold text-ink">채권 현황 보고서</h1>
         <p className="mt-1 text-sm text-muted">바이어 채권 · 등급을 한눈에 — 휴대폰에서도 바로 확인</p>
       </div>
+
+      <FxTile
+        cArUsd={arC}
+        overdueUsd={overdueUsd}
+        overdueCount={overdueCount}
+        base={{ date: "2026-09-30", krw: base930Krw }}
+      />
 
       <UrgentAlert count={urgentBuyers.length} />
 
